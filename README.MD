@@ -7,13 +7,21 @@
 
 FDMM Kraken is an evolving project with these key objectives:
  - [x] Create a secure, standalone Docker-based ecosystem for managing individual print farm nodes.
- - [ ] Automate secret file creation using entrypoints, replacing environment variables.
- - [ ] Build an extensible system to manage multiple nodes from a single control server.
+ - [ ] Build an extensible system to manage multiple nodes from a single "control server."
+ - [ ] Establish a node proxy system to enable delegation, so a single node can act as a proxy to the control server for multiple sub-nodes.
+ - [ ] Develop x86_64 and RasPi PXE Boot environments for fully automated, ad-hoc node deployment (external DHCP will be required)
+
+Short Term Goals:
+ - [ ] Automate secret file creation using entrypoints, replacing environment variables for better security.
+ - [ ] Example on using an external LDAP server so multiple nodes use the same auth credentials.
+ - [ ] Provide integration examples with Proxy/DDNS services like Cloudflare. 
+ - [ ] Provide integration examples with other signing utilities such as LetsEncrypt
+ - [ ] Begin development of "control server" and "managed-node" docker-compose files, the managed node will be a stripped-down version of the normal unmanaged node. The control server will serve to de-duplicate auth, dns, etc and provide a consolidated proxy to handle requests from multiple nodes.
+
+Long Term Goals:
+ - [ ] Develop "control server" (Working name: FDMM-Atlantis)
  - [ ] Implement node autodiscovery.
- - [ ] Develop a DNS system on the control server for aggregated node records.
- - [ ] Establish a nested-node system to enable node control delegation.
- - [ ] Set up a PXE Boot server for fully automated node deployment (external DHCP required).
- - [ ] Provide integration examples with Proxy/DDNS services like Cloudflare.
+ - [ ] Develop automatic DNS system on the control server for aggregated node records.
 
 ---
 
@@ -139,7 +147,6 @@ If setup was successful, access the FDMM Kraken dashboard via HTTPS at `https://
 ---
 
 ## Credits
-
  - **Davidzwa** for the [FDM-Monster](https://github.com/fdm-monster/fdm-monster) project and dashboard color scheme inspiration.
  - **Klipper Compose and Config** inspiration from [klipper-web-control-docker](https://github.com/dimalo/klipper-web-control-docker).
  - **mkcert Configuration** from [Setting Up Traefik and mkcert for Local Development](https://dev.to/agusrdz/setting-up-traefik-and-mkcert-for-local-development-48j5).
