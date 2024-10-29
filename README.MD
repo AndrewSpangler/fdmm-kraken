@@ -2,9 +2,7 @@
 
 *WIP Node-Based Print Farm Management Docker Ecosystem*
 
-![image](files/Users/jzhang/Desktop/Isolated.png)
-
-![The FDMM Kraken Dashboard](https://github.com/AndrewSpangler/fdmm-kraken/blob/main/docu/screenshot.jpg?raw=true)
+![The FDMM Kraken Dashboard](https://raw.githubusercontent.com/AndrewSpangler/fdmm-kraken/refs/heads/main/docu/screenshot.png)
 
 FDMM Kraken is a work in progress with a number of goals:
  - [x] Create standalone secure Docker based ecosystem to manage individual print farm nodes
