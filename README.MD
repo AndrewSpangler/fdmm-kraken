@@ -95,12 +95,27 @@ You can access the container by going to http://ip.ad.re.ss:8443 - for example i
 
   - Make a copy of the provided `template.env` file and rename it to `.env` and edit the fields marked with #CHANGEME, [it-tools](https://it-tools.tech/token-generator) can make deployment easier
 
+#### Up the Stack
+In the docker folder, run the following command to start the docker stack: 
+```bash
+sudo docker compose -f ./docker-compose.yml up -d
+```
+The docker containers should download and start up at this point.
+
+#### Configure DNS
+Configure either your PC or Router to use the ip of the node as a secondary DNS. This will cause network requests to *.printhost.local (or whatever you set the node hostname to be) to direct to the node.
+
 #### Configure Openldap
 After first launch you will need to set up openldap using the automated process from ldap-user-manager by going to http://ip.ad.re.ss:8785/setup - for example if the node IP address is 192.168.1.12 you would visit https://192.168.1.12:8785/setup
 Follow the simple guided process to create all the needed groups and other objects for openldap authentication  
 Once you've gone through the setup process and created the admin user move on to the next step.
+After configuration you should comment out the ports section of the ldap-user-manager in docker-compose.yml in order to disable local access.
 
-#### Configure 
+#### Start Using FDMM Kraken
+  If everything went right you should now be able to access the FDMM Kraken dashboard by going to visiting it's hostname through a web browser on a computer on the same network. 
+  Kraken uses HTTPS/SSL for all communications, the dashboard https://printhost.local (or a subdomain.)
+  You will get a certificate error on most browsers due to it being self-signed. Accept this error for now, later you can fix this through by downloading and installing a root-ca certificate on your device.
+
 
 #### Advanced Config:
   - Todo:
