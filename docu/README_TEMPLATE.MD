@@ -52,55 +52,13 @@
 ### Included Components
 Kraken is built from a number of interconnected docker containers.
 
-| Container Name | Image           | Description              |
-| -------------- | --------------- | ------------------------ |
-| authelia | authelia/authelia | Authentication service |
-| code-server | lscr.io/linuxserver/code-server:latest | Server maintainance and file editing |
-| coredns | coredns/coredns | Local Name Service |
-| dozzle | amir20/dozzle:latest | Container debug and monitoring service |
-| fdm-monster | fdmmonster/fdm-monster:1.5.4 | 3D Print Farm Manager |
-| fdm-monster-mongodb | mongo:7 | FDMM Database Service |
-| filebrowser | filebrowser/filebrowser | File management service |
-| fluidd | dimalo/fluidd | Fluidd Web UI |
-| glances | nicolargo/glances:latest-full | Host Monitoring Service |
-| homepage | ghcr.io/gethomepage/homepage:latest | Environment Dashboard |
-| ldap-user-manager | wheelybird/ldap-user-manager:v1.9 | User and group management |
-| mainsail | dimalo/mainsail | Mainsail Web UI |
-| manyfold | ghcr.io/manyfold3d/manyfold:latest | 3D Model Manager |
-| manyfold-postgres | postgres:15 | Manyfold3D Postgres Service |
-| manyfold-redis | redis:7 | Manyfold3D Redis Service |
-| mkcert | vishnunair/docker-mkcert | Localhost cert management |
-| moonraker | dimalo/klipper-moonraker | Klipper Moonraker Service |
-| octoprint | octoprint/octoprint | 3D Printer Server |
-| openldap | osixia/openldap:latest | Users and Groups Service |
-| portainer | portainer/portainer-ce:alpine | Container management service |
-| serve | nginx:latest | Local Nginx File Server |
-| traefik | traefik:latest | Traefik proxy dashboard |
-
+{{ IMAGE_TABLE }}
 
 ### Routing and ACLs
 Kraken uses Traefik for automatic routing and OpenLDAP / Authelia for access control & auth.
 You can create new groups using ldap-user-manager and edit `./config/authelia/configuration.yml` to limit access to different endpoints. 
 
-| Service Name | Route           | Access Policy   |
-| -------------- | --------------- | --------------- |
-| authelia | https://authelia.${DOMAINNAME}/ | **everybody**:*bypass* |
-| code-server | https://code-server.${DOMAINNAME}/ | **admins**:*one_factor* |
-| dozzle | https://dozzle.${DOMAINNAME}/ | **admins**:*one_factor* |
-| fdm-monster | https://fdm-monster.${DOMAINNAME}/ | **everybody**:*one_factor* |
-| filebrowser | https://filebrowser.${DOMAINNAME}/ | **admins**:*one_factor* |
-| fluidd | https://fluidd.${DOMAINNAME}/ | **everybody**:*one_factor* |
-| glances | https://glances.${DOMAINNAME}/ | **admins**:*one_factor* |
-| homepage | https://${DOMAINNAME}/ |  |
-| ldap-user-manager | https://ldap-user-manager.${DOMAINNAME}/ | **everybody**:*one_factor* |
-| mainsail | https://mainsail.${DOMAINNAME}/ | **everybody**:*one_factor* |
-| manyfold | https://manyfold.${DOMAINNAME}/ | **everybody**:*one_factor* |
-| moonraker | https://moonraker.${DOMAINNAME}/ | **everybody**:*one_factor* |
-| octoprint | https://octoprint.${DOMAINNAME}/ | **everybody**:*one_factor* |
-| portainer | https://portainer.${DOMAINNAME}/ | **admins**:*one_factor* |
-| serve | https://serve.${DOMAINNAME}/ | **everybody**:*one_factor* |
-| traefik | https://traefik.${DOMAINNAME}/ | **admins**:*one_factor* |
-
+{{ ROUTING_TABLE }}
 
 ## Setup
 

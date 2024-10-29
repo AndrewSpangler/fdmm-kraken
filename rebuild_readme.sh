@@ -1,0 +1,1 @@
+sudo docker compose -f ./readock.yml up --build --force-recreate --no-deps readock

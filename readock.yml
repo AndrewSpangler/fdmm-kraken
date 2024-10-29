@@ -1,0 +1,15 @@
+services:
+  readock:
+    container_name: readock
+    hostname: readock
+    stop_signal: SIGINT
+    build:
+      context: readock
+      target: builder
+    volumes:
+      - ./docker-compose.yml:/readock/docker-compose.yml:ro
+      - ./docu/README_TEMPLATE.MD:/readock/README_TEMPLATE.MD:ro
+      - ./config/authelia/configuration.yml:/readock/authelia.yml:ro
+      - ./README.MD:/readock/README.MD
+    environment:
+      - PYTHONUNBUFFERED=1

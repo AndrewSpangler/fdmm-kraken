@@ -127,7 +127,6 @@ services:
       - "homepage.group=Background Services"
       - "homepage.icon=/images/database.png"
       - "homepage.description=FDMM Database Service"
-      - "homepage.href=https://${DOMAINNAME}/"
 
   moonraker:
     image: dimalo/klipper-moonraker
