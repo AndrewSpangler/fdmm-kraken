@@ -154,6 +154,6 @@ If setup was successful, access the FDMM Kraken dashboard via HTTPS at `https://
 ### Icons
  - Most icons from [pictogrammers](https://pictogrammers.com/), customized for the FDMM theme.
  - Icons from Portainer, Fluidd, Klipper, VS Code, and Mainsail sourced from their projects and adapted for FDMM.
- - FDM-Monster and FDMM Kraken/Octoprint icons designed in-house.
+ - FDMM Kraken/Octoprint icons by Lyfe.
 
 ---
