@@ -135,6 +135,19 @@ The containers will download and launch.
 ### Using FDMM Kraken
 
 If setup was successful, access the FDMM Kraken dashboard via HTTPS at `https://<hostname>.local`. Accept any self-signed certificate warnings; these can be resolved by installing the generated root certificate on your device.
+Under the services section of the dashboard there is a link to download the RootCA.pem file called "Download Root Cert", click the link and download the file it serves. Follow the appropriate instructions to install the cert on the devices you want to be able to access the node from:
+ - Ubuntu
+  - [Install a root CA certificate in the trust store](https://ubuntu.com/server/docs/install-a-root-ca-certificate-in-the-trust-store)
+ - Windows
+  - [Installing the trusted root certificate](https://learn.microsoft.com/en-us/skype-sdk/sdn/articles/installing-the-trusted-root-certificate)
+ - MacOS
+  - [](https://www.bounca.org/tutorials/install_root_certificate.html)
+ - Android
+  - [Install root certificates on Android](https://emteria.com/blog/install-root-certificate-android)
+ - iOS
+  - [Installing the root CA on iOS](https://www.ibm.com/docs/en/mpf/7.1.0?topic=certificates-installing-root-ca-ios)
+ - Windows/Mac OS/Linux/iOS/Android/Java/Firefox/Chrome
+  - [Add self-generated root certificate authorities for 8 operating systems and browsers](https://www.bounca.org/tutorials/install_root_certificate.html)
 
 ---
 
