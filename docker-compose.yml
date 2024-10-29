@@ -72,6 +72,11 @@ networks:
     name: homepage_bridge
     external: false
 
+  cert_bridge:
+    driver: bridge
+    name: cert_bridge
+    external: false
+  
 
 services:
   #####
@@ -178,7 +183,7 @@ services:
       - "homepage.name=Mainsail"
       - "homepage.group=Print Services"
       - "homepage.icon=/images/mainsail.png"
-      - "homepage.description=Mainsail Klipper Web UI"
+      - "homepage.description=Mainsail Web UI"
       - "homepage.href=https://mainsail.${DOMAINNAME}/"
 
   fluidd: # Alternative to mainsail
@@ -202,7 +207,7 @@ services:
       - "homepage.name=Fluidd"
       - "homepage.group=Print Services"
       - "homepage.icon=/images/fluidd.png"
-      - "homepage.description=Fluidd Klipper Web UI"
+      - "homepage.description=Fluidd Web UI"
       - "homepage.href=https://fluidd.${DOMAINNAME}/"
 
   octoprint:
@@ -337,6 +342,7 @@ services:
       print_network: {}
       homepage_bridge: {}
       glances_bridge: {}
+      cert_bridge: {}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ${CERTS_DIR}:/certs:ro
@@ -544,7 +550,7 @@ services:
       REMOTE_HTTP_HEADERS_LOGIN: "${LUM_REMOTE_HTTP_HEADERS_LOGIN}"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.ldap-user-manager.rule=Host(`ldap-user-manager.${DOMAINNAME}`) || Host(`admin.${DOMAINNAME}`)"
+      - "traefik.http.routers.ldap-user-manager.rule=Host(`ldap-user-manager.${DOMAINNAME}`)"
       - "traefik.http.services.ldap-user-manager.loadbalancer.server.port=80"
       - "traefik.http.services.ldap-user-manager.loadbalancer.server.scheme=http"
       # Configure homepage automatic discovery
@@ -554,7 +560,36 @@ services:
       - "homepage.description=User and group management"
       - "homepage.href=https://ldap-user-manager.${DOMAINNAME}/"
 
-
+  # Serve files locally, specifically the rootCA.pem file so users can install it
+  serve:
+    image: nginx:latest
+    hostname: serve
+    container_name: serve
+    restart: unless-stopped
+    networks:
+      - cert_bridge
+    volumes:
+      - ${CERTS_DIR}/rootCA.pem:/usr/share/nginx/html/public-certs/${DOMAINNAME}-rootCA.pem:ro
+      - ${APPDATADIR}/serve:/usr/share/nginx/html/${DOMAINNAME}-rootCA.pem:ro
+    environment:
+      - AUTO_INDEX=on  # Set to "off" to disable directory listing
+    entrypoint: >
+      /bin/sh -c "
+      echo 'events {}' > /etc/nginx/nginx.conf && \
+      echo 'http { server { listen 80; location / { root /usr/share/nginx/html; autoindex on; } } }' >> /etc/nginx/nginx.conf && \
+      nginx -g 'daemon off;'
+      "
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.serve.rule=Host(`serve.${DOMAINNAME}`)"
+      - "traefik.http.services.serve.loadbalancer.server.port=80"
+      - "traefik.http.services.serve.loadbalancer.server.scheme=http"
+      # Configure homepage automatic discovery
+      - "homepage.name=Download Root Cert"
+      - "homepage.group=Services"
+      - "homepage.icon=/images/certfile.png"
+      - "homepage.description=Local Nginx File Server"
+      - "homepage.href=https://serve.${DOMAINNAME}/public-certs/printhost.local-rootCA.pem"
 
 
 

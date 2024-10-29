@@ -83,6 +83,12 @@ access_control:
     - group:everybody
     policy: one_factor
 
+  # ldap-user-manager - everybody (for changing passwords)
+  - domain: ldap-user-manager.{{ env "DOMAINNAME" }}
+    subject:
+    - group:everybody
+    policy: one_factor
+
   # mainsail - everyone
   - domain: mainsail.{{ env "DOMAINNAME" }}
     subject:
@@ -113,8 +119,8 @@ access_control:
     - group:admins
     policy: one_factor
 
-  # ldap-user-manager - everybody (for changing passwords)
-  - domain: ldap-user-manager.{{ env "DOMAINNAME" }}
+  # serve - everyone
+  - domain: serve.{{ env "DOMAINNAME" }}
     subject:
     - group:everybody
     policy: one_factor
