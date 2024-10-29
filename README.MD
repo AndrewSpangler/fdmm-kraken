@@ -1,138 +1,152 @@
-# FDMM Kraken (name subject to change)
+
+# FDMM Kraken (Name Subject to Change)
 
 *WIP Node-Based Print Farm Management Docker Ecosystem*
 
-![The FDMM Kraken Dashboard](https://raw.githubusercontent.com/AndrewSpangler/fdmm-kraken/refs/heads/main/docu/screenshot.png)
+![FDMM Kraken Dashboard](https://raw.githubusercontent.com/AndrewSpangler/fdmm-kraken/refs/heads/main/docu/screenshot.png)
 
-FDMM Kraken is a work in progress with a number of goals:
- - [x] Create standalone secure Docker based ecosystem to manage individual print farm nodes
- - [ ] Automate creation of secrets files using an entrypoint rather than using environment variables 
- - [ ] Create an extensible system with multiple nodes managed by a single control server
- - [ ] Enable node autodiscovery
- - [ ] Create an automatic dns system where the control server serves an aggregated record of node DNS names
- - [ ] Create a nested-node system where nodes can proxy control to other nodes
- - [ ] Create PXE Boot server system for fully automatic node deployment (will need external DHCP)
- - [ ] Provide examples of integrating with Proxy/DDNS services like Cloudflare
+FDMM Kraken is an evolving project with these key objectives:
+ - [x] Create a secure, standalone Docker-based ecosystem for managing individual print farm nodes.
+ - [ ] Automate secret file creation using entrypoints, replacing environment variables.
+ - [ ] Build an extensible system to manage multiple nodes from a single control server.
+ - [ ] Implement node autodiscovery.
+ - [ ] Develop a DNS system on the control server for aggregated node records.
+ - [ ] Establish a nested-node system to enable node control delegation.
+ - [ ] Set up a PXE Boot server for fully automated node deployment (external DHCP required).
+ - [ ] Provide integration examples with Proxy/DDNS services like Cloudflare.
 
+---
+
+## Table of Contents
+
+- [Setup](#setup)
+  - [Operating System](#operating-system)
+  - [Installation](#installation)
+    - [Connect to the Node](#step-1-connect-to-the-node)
+    - [Install Git](#step-2-install-git)
+    - [Clone Kraken Project](#step-3-clone-kraken-project)
+    - [Configure with VS Code](#step-4-configure-with-vs-code)
+    - [Configure Environment Variables](#step-5-configure-environment-variables)
+    - [Start the Docker Stack](#step-6-start-the-docker-stack)
+    - [DNS Configuration](#step-7-dns-configuration)
+    - [Configure OpenLDAP](#step-8-configure-openldap)
+- [Using FDMM Kraken](#using-fdmm-kraken)
+- [Advanced Configuration](#advanced-configuration)
+- [Credits](#credits)
+- [Icons](#icons)
+
+---
 
 ## Setup
 
-### OS
+### Operating System
 
-**THE NAME OF YOUR HOST IS IMPORTANT**
-IT WILL USED TO CONFIGURE LOCAL DNS / HANDLE PROXYING THIS GUIDE ASSUMES YOU NAMED YOUR COMPUTER `printhost`. IF YOU SET IT TO SOMETHING ELSE DURING UBUNTU / RASPI INSTALL YOU WILL NEED TO ADAPT THE FOLLOWING STEPS ACCORDINGLY.
+**The Hostname of Your Machine is Important**  
+The hostname will be used to configure local DNS and handle proxying. This guide assumes your computer is named `printhost`. If you use a different name during Ubuntu/Raspberry Pi setup, adjust the instructions accordingly.
 
- - This docker stack is a little heavy and has not been tested on a RasPi.
- - It may work on a higher-end RasPi, however if you find you are running into performance issues try removing some of the ancillary containers like Portainer / Filebrowser / Code-Server / Glances / unneeded printer service containers. Removing traefik, autheia, openldap, or coredns will break the reverse proxy / auth system.
+ - This Docker stack is resource-intensive and untested on Raspberry Pi. While it may work on higher-end Pi models, performance issues may arise. Removing optional containers such as Portainer, Filebrowser, Code-Server, Glances, and unused printer service containers can help. Removing Traefik, Authelia, OpenLDAP, or CoreDNS will break the reverse proxy and authentication setup.
 
- - This stack has been tested on a Ryzen 7 2700X using [Ubuntu Server 24.04.1 LTS](https://ubuntu.com/download/server). during installation Docker was selected to be installed and a user called "administrator" was created. SSH was enabled so the server could be configured headless. Configure a static IP address if you are able. 
+ - The stack has been tested on a Ryzen 7 2700X using [Ubuntu Server 24.04.1 LTS](https://ubuntu.com/download/server). During installation, Docker was selected, a user named “administrator” was created, and SSH was enabled for headless configuration. Set a static IP address if possible.
 
-### Install
- - This process assumes you are running Ubuntu Server 24.04.01, you may need to adjust it to work on a RasPi
- 
-#### Connect to Node
- - Connect to the node via SSH, if you are using Ubuntu Desktop you can skip this step and just open up a terminal. You will need to get the ip of the node from your router or the node itself if you have direct access. This will be something like `192.168.1.12`
- - Run `ssh administrator@192.168.1.12`, replace the ip with the one from your node.
+---
 
-#### Install Git
- - Enter the following commands to install git, git will be used to pull down / update Kraken in the future
-```bash
-sudo apt update
-sudo apt install git -y
-```
+### Installation
 
-#### Make Kraken Folder and Pull Project
- - Use git to pull the project, the nnavigate into the directory the project was pulled into
-```bash
-git pull https://github.com/AndrewSpangler/fdmm-kraken.git
-cd ./fdmm-kracken
-```
+This guide assumes Ubuntu Server 24.04.01. Some steps may need modification for Raspberry Pi.
 
-#### Setup VS Code for Kraken Config
- - The easiest way to configure the Kraken environment is by using a temporary code-server container. Kraken includes a code-server container so this one can be deleted using portainer once you get the system running. Make sure you run this command in the fdmm-kraken directory.
- - Run the following command:
-```bash
-docker run -d \
-  --name=temp-code-server \
-  -e PUID=1000 \
-  -e PGID=1000 \
-  -e PASSWORD=password `CHANGEME` \
-  -e DEFAULT_WORKSPACE=/workspace \
-  -p 8443:8443 \
-  -v ./config/temp-code-server:/config \
-  -v ./:/workspace \
-  --restart unless-stopped \
-  lscr.io/linuxserver/code-server:latest
-```
-This will create a code-server instance for configuring fdmm-kraken
-You can access the container by going to http://ip.ad.re.ss:8443 - for example if the node IP address is 192.168.1.12 you would visit https://192.168.1.12:8443
+#### Step 1: Connect to the Node
+ - Connect to the node via SSH. If using Ubuntu Desktop, skip this step and open a terminal. To connect, obtain the node’s IP address from your router or check directly on the node.
+ - Run:  
+   ```bash
+   ssh administrator@<node-ip-address>
+   ```
 
-#### Configure Kraken Environment Variables
- - Once in code server you will see a list of files and folders on the left, this is your docker compose environment. Some files and folders will be generated after the first launch of the compose stack:
-    - appdata
-      - *Folder for data generated by containers*
-    - certs
-      - *Folder to holder server certificates*
-    - config
-      - *Folder to holder container config folders*
-    - fdmmhydra
-      - *Folder for locally built config application, fdmmhydra currently disabled*
-    - logs
-      - *Folder for some container logs*
-    - .gitignore
-      - *File for git repo management, used for updates*
-    - docker-compose.yml
-      - *Main Docker configuration file*
-    - readme.md
-      - *What you're currently reading*
-    - rebuild_fdmmhydra.sh
-      - *Development script, do not use unless building fdmmhydra yourself*
-    - template.env *Template file, you will need to make a copy of this and name it `.env`*
+#### Step 2: Install Git
+ - Update and install Git, which will be used to pull the Kraken project:
+   ```bash
+   sudo apt update
+   sudo apt install git -y
+   ```
 
- - Kraken will automatically generate the needed self-signed cert for Traefik reverse-proxying. This enables a secure connection to the server, however it also means the certificate is not trusted by most browsers. You will need to download and install the generated Root CA Certificate to your OS on your device (works on Windows / Mac / Linux). Having the node Reverse-proxying greatly simplifies access control, security, and routing to containers. 
+#### Step 3: Clone Kraken Project
+ - Create a folder for Kraken, then pull the project and navigate into it:
+   ```bash
+   git pull https://github.com/AndrewSpangler/fdmm-kraken.git
+   cd fdmm-kraken
+   ```
 
- - Kraken is primarily configured though Docker environment variables using a `.env` file. Most of the configuration is host info, passwords, timezones, and ports. You MUST correctly set the DOMAINNAME variable or proxying and certifcate generation will not work right. If you misconfigure these you will need to down the entire compose stack, fix it, and re-run the stack.
+#### Step 4: Configure with VS Code
+ - Use a temporary code-server container to configure the Kraken environment. Once running, you can delete it using Portainer.
+ - In the `fdmm-kraken` directory, run:
+   ```bash
+   docker run -d \
+     --name=temp-code-server \
+     -e PUID=1000 \
+     -e PGID=1000 \
+     -e PASSWORD=password \
+     -e DEFAULT_WORKSPACE=/workspace \
+     -p 8443:8443 \
+     -v ./config/temp-code-server:/config \
+     -v ./:/workspace \
+     --restart unless-stopped \
+     lscr.io/linuxserver/code-server:latest
+   ```
+ - Access the container at `http://<node-ip-address>:8443`.
 
-  - Make a copy of the provided `template.env` file and rename it to `.env` and edit the fields marked with #CHANGEME, [it-tools](https://it-tools.tech/token-generator) can make deployment easier
+#### Step 5: Configure Environment Variables
+ - In code-server, locate the Docker environment files on the left sidebar. Essential folders and files include:
+    - `appdata`: *Container-generated data*
+    - `certs`: *Server certificate storage*
+    - `config`: *Container configuration files*
+    - `fdmmhydra`: *Local config application, currently disabled*
+    - `logs`: *Some container logs*
+    - `.gitignore`: *File for Git repo updates*
+    - `docker-compose.yml`: *Main Docker config file*
+    - `template.env`: *Environment variable template (rename to `.env` for use)*
 
-#### Up the Stack
-In the docker folder, run the following command to start the docker stack: 
+ - FDMM Kraken will auto-generate self-signed certificates for secure Traefik reverse-proxying. To avoid browser certificate warnings, download and install the Root CA certificate on your device. Reverse-proxying provides simplified access control, security, and routing.
+
+ - Create a copy of `template.env`, rename it `.env`, and update fields marked #CHANGEME. [it-tools](https://it-tools.tech/token-generator) can simplify this process.
+
+#### Step 6: Start the Docker Stack
+In the `docker` folder, start the Docker stack:
 ```bash
 sudo docker compose -f ./docker-compose.yml up -d
 ```
-The docker containers should download and start up at this point.
+The containers will download and launch.
 
-#### Configure DNS
-Configure either your PC or Router to use the ip of the node as a secondary DNS. This will cause network requests to *.printhost.local (or whatever you set the node hostname to be) to direct to the node.
+#### Step 7: DNS Configuration
+ - Set your PC or router to use the node IP as a secondary DNS. This directs `*.printhost.local` (or your chosen hostname) requests to the node.
 
-#### Configure Openldap
-After first launch you will need to set up openldap using the automated process from ldap-user-manager by going to http://ip.ad.re.ss:8785/setup - for example if the node IP address is 192.168.1.12 you would visit https://192.168.1.12:8785/setup
-Follow the simple guided process to create all the needed groups and other objects for openldap authentication  
-Once you've gone through the setup process and created the admin user move on to the next step.
-After configuration you should comment out the ports section of the ldap-user-manager in docker-compose.yml in order to disable local access.
+#### Step 8: Configure OpenLDAP
+ - After the first launch, set up OpenLDAP using `ldap-user-manager` by visiting `http://<node-ip>:8785/setup`. Follow the guided setup to create the required groups and admin user.
+ - After setup, comment out the `ldap-user-manager` ports section in `docker-compose.yml` to disable local access.
 
-#### Start Using FDMM Kraken
-  If everything went right you should now be able to access the FDMM Kraken dashboard by going to visiting it's hostname through a web browser on a computer on the same network. 
-  Kraken uses HTTPS/SSL for all communications, the dashboard https://printhost.local (or a subdomain.)
-  You will get a certificate error on most browsers due to it being self-signed. Accept this error for now, later you can fix this through by downloading and installing a root-ca certificate on your device.
+---
 
+### Using FDMM Kraken
 
-#### Advanced Config:
-  - Todo:
-    - Section on homepage
-    - Section on klipper/moonraker/fluidd/mainsail
-    - Section on ldap
+If setup was successful, access the FDMM Kraken dashboard via HTTPS at `https://<hostname>.local`. Accept any self-signed certificate warnings; these can be resolved by installing the generated root certificate on your device.
 
-## Credits:
- - Davidzwa, author of [FDM-Monster](https://github.com/fdm-monster/fdm-monster) for supporting this project and for writing FDM-Monster, without it this project wouldn't exist. I stole heavily from his color scheme for the dashboard / config application.
- - Klipper compose and config heavily inspired by [klipper-web-control-docker](https://github.com/dimalo/klipper-web-control-docker?tab=readme-ov-file#install-the-services)
- - Some mkcert configuration taken from [Setting Up Traefik and mkcert for Local Development](https://dev.to/agusrdz/setting-up-traefik-and-mkcert-for-local-development-48j5)
+---
 
-### Icons:
- - Unless noted, most homepage icons were originally sourced from [pictogrammers](https://pictogrammers.com/) and edited to match the FDMM theme.
+### Advanced Configuration
+ - Additional documentation coming soon, covering:
+   - Homepage customization
+   - Klipper, Moonraker, Fluidd, and Mainsail integration
+   - LDAP setup
 
- - Portainer, Fluidd, Klipper, VS Code, and Mainsail sourced from their respective projects and edited to match the FDMM theme.
+---
 
- - FDM-Monster icon from FDM-Monster project.
+## Credits
 
- - FDM Kracken / Octoprint - me :)
+ - **Davidzwa** for the [FDM-Monster](https://github.com/fdm-monster/fdm-monster) project and dashboard color scheme inspiration.
+ - **Klipper Compose and Config** inspiration from [klipper-web-control-docker](https://github.com/dimalo/klipper-web-control-docker).
+ - **mkcert Configuration** from [Setting Up Traefik and mkcert for Local Development](https://dev.to/agusrdz/setting-up-traefik-and-mkcert-for-local-development-48j5).
+
+### Icons
+ - Most icons from [pictogrammers](https://pictogrammers.com/), customized for the FDMM theme.
+ - Icons from Portainer, Fluidd, Klipper, VS Code, and Mainsail sourced from their projects and adapted for FDMM.
+ - FDM-Monster and FDMM Kraken/Octoprint icons designed in-house.
+
+---
