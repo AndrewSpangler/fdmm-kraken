@@ -1,0 +1,14 @@
+.:53 {
+  errors
+  ready
+  hosts {
+    {$HOSTIP} {$DOMAINNAME}
+    fallthrough
+  }
+  rewrite name regex (.*)\.{$DOMAINNAME} {$DOMAINNAME}
+  forward . /etc/resolv.conf {
+    max_concurrent 1000
+  }
+  cache 30
+  reload
+}

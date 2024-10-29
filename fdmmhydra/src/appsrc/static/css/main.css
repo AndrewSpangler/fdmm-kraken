@@ -1,0 +1,145 @@
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    margin: 0;
+}
+
+main {
+    flex: 1;
+    background-color: rgb(54, 54, 54);
+    background-image: linear-gradient(45deg, rgb(25, 25, 25), rgb(120, 5, 5) 100%);
+}
+
+* {
+    font-family: Roboto, sans-serif;
+}
+
+.fdmm-bg {
+    background-color: rgb(155, 5, 5);
+}
+
+.fdmm-logo-normal {
+    font-weight: 350 !important;
+    font-size: 1.25rem;
+}
+.fdmm-logo-bold {
+    font-weight: 700 !important;
+    font-size: 1.3rem;
+}
+
+
+.zoom_icon {
+    padding: 0px;
+    margin: 0px;
+}
+
+
+/* Add this to your CSS stylesheet */
+.bi-chevron-down.flip {
+    transform: rotate(180deg);
+    transition: transform 0.3s ease; /* Add a smooth transition effect */
+}
+
+/* Add this to your CSS stylesheet for the expanding animation */
+.collapsing .bi-chevron-down {
+    transform: rotate(0deg);
+    transition: transform 0.3s ease; /* Add a smooth transition effect */
+}
+
+.card-padding {
+    padding: 0px;
+}
+
+.card-title-body {
+    float: left;
+}
+
+
+.dropdown-menu {
+    border-top-left-radius: 0px;
+    border-top-right-radius: 0px;
+    border-color: darkgray;
+    border-top-color: transparent;
+    padding: 0px;
+}
+
+.navbar-dark {
+    border-bottom-color: transparent;
+}
+
+.hard-shadow, .card {
+    box-shadow: 0px 4px 6px 0px rgba(0, 0, 0, 0.2), 0px 1px 3px 0px rgba(0, 0, 0, 0.2);
+}
+
+.light-shadow, .card {
+    box-shadow: 0px 4px 6px 0px rgba(0, 0, 0, 0.1), 0px 1px 3px 0px rgba(0, 0, 0, 0.1);
+}
+
+
+
+.alert {
+    opacity: 90%;
+}
+
+.alert-container {
+    position: fixed;
+    top: 60px;
+    right: 10px;
+    z-index: 9999; /* Ensure it's above other content */
+}
+
+.close {
+    padding: 0px;
+    outline: 0px;
+    border: 0px;
+    background-color: transparent;
+    font-weight: bold;
+}
+
+
+table {
+    --bs-table-bg: transparent !important;
+}
+
+.zoom-button {
+    padding: 0px;
+    border-color: transparent;
+    outline-color: transparent;
+    outline: none;
+    box-shadow: none;
+    background-color: transparent;
+    background: none;
+}
+
+
+
+
+
+.form-label {
+    font-weight: bold;
+}
+
+.column-search-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding:0px;
+    border:none;
+    outline:none;
+    font-weight: bold;
+    border-left: 2px solid #cccccc34;
+    border-right: 0px solid #cccccc34;
+    border-bottom: 2px solid #cccccc34;
+    display: block;
+    font-size: small;
+}
+
+.hover_tooltip {
+    margin: 0px;
+    padding: 0px;
+    border: 0px;
+    outline: 0px;
+    font-size: medium;
+    top: -1pt;
+    position: relative;
+}

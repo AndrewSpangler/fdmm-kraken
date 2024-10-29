@@ -1,0 +1,55 @@
+---
+# For configuration options and examples, please see:
+# https://gethomepage.dev/configs/services
+- Host Status:
+  - Host Info:
+      widget:
+        type: glances
+        url: http://glances:61208
+        version: 4
+        metric: info
+        diskUnits: bytes
+        refreshInterval: 1000
+        pointsLimit: 30
+  - CPU:
+      widget:
+        type: glances
+        url: http://glances:61208
+        version: 4
+        metric: cpu
+        diskUnits: bytes
+        refreshInterval: 1000
+        pointsLimit: 30
+  - Processes:
+      widget:
+        type: glances
+        url: http://glances:61208
+        version: 4
+        metric: process
+        refreshInterval: 1000
+        pointsLimit: 30
+  - Network:
+      widget:
+        type: glances
+        url: http://glances:61208
+        version: 4
+        metric: network:eth0
+        refreshInterval: 1000
+        pointsLimit: 30
+  - Disk:
+      widget:
+        type: glances
+        url: http://glances:61208
+        version: 4
+        metric: disk:sda
+        diskUnits: bytes
+        refreshInterval: 5000
+        pointsLimit: 15
+  - CPU Temperature:
+      widget:
+        type: glances
+        url: http://glances:61208
+        version: 4
+        metric: sensor:Composite
+        refreshInterval: 5000
+        pointsLimit: 15

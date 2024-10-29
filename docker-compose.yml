@@ -1,0 +1,863 @@
+networks:
+
+  traefik_network:
+    driver: bridge
+    name: traefik_network
+    external: false
+
+  manyfold_network: # Connects Manyfold databases to Manyfold
+    driver: bridge
+    name: manyfold_network
+    external: false
+  manyfold_bridge: # Connects Manyfold to traefik
+    driver: bridge
+    name: manyfold_bridge
+    external: false
+
+  # Connects openldap, ldap-user-manager, portainer and authelia together and to traefik 
+  ldap_network:
+    driver: bridge
+    name: ldap_network
+    external: false
+
+  # Connects code-server to traefik 
+  code_server_bridge:
+    driver: bridge
+    name: code_server_bridge
+    external: false
+
+  # Connects dozzle to traefik 
+  dozzle_bridge:
+    driver: bridge
+    name: dozzle_bridge
+    external: false
+
+  # Connects fdm-monster, moonraker, mainsail, fluid, and octoprint together and to traefik 
+  print_network:
+    driver: bridge
+    name: print_network
+    external: false
+
+  # Connects filebrowser to traefik
+  filebrowser_bridge:
+    driver: bridge
+    name: filebrowser_bridge
+    external: false
+
+  # fdmmhydra_bridge:
+  #   driver: bridge
+  #   name: fdmmhydra_bridge
+  #   external: false
+
+  glances_bridge:
+    driver: bridge
+    name: glances_bridge
+    external: false
+  glances_network:
+    driver: bridge
+    name: glances_network
+    external: false
+
+  fdmm_network: # Segment off fdmm db
+    driver: bridge
+    name: fdmm_network
+    external: false
+  fdmm_bridge:
+    driver: bridge
+    name: fdmm_bridge
+    external: false
+
+  homepage_bridge:
+    driver: bridge
+    name: homepage_bridge
+    external: false
+
+
+services:
+  #####
+  ##### PRINTER SERVICES
+  #####
+  fdm-monster:
+    image: fdmmonster/fdm-monster:1.5.4
+    container_name: fdm-monster
+    hostname: fdm-monster
+    restart: unless-stopped
+    depends_on:
+      - fdm-monster-mongodb
+    networks:
+      - fdmm_bridge
+      - fdmm_network
+    volumes:
+      - ${APPDATADIR}/fdm-monster/media/:/app/media
+    environment:
+      - MONGO=mongodb://$FDM_MONSTER_MONGO_INITDB_ROOT_USERNAME:$FDM_MONSTER_MONGO_INITDB_ROOT_PASSWORD@fdm-monster-mongodb:27017/fdm-monster?authSource=admin
+      - NODE_ENV=development
+      - SERVER_PORT=4000
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.fdm-monster.rule=Host(`fdm-monster.${DOMAINNAME}`)"
+      - "traefik.http.services.fdm-monster.loadbalancer.server.port=4000"
+      # Configure homepage automatic discovery
+      - "homepage.name=FDM Monster"
+      - "homepage.group=Print Services"
+      - "homepage.icon=/images/fdmm.png"
+      - "homepage.description=3D Print Farm Manager"
+      - "homepage.href=https://fdm-monster.${DOMAINNAME}/"
+
+  fdm-monster-mongodb:
+    image: mongo:7
+    container_name: fdm-monster-mongodb
+    hostname: fdm-monster-mongodb
+    restart: unless-stopped
+    networks:
+      - fdmm_network
+    volumes:
+      - ${APPDATADIR}/fdm-monster/data:/data
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=$FDM_MONSTER_MONGO_INITDB_ROOT_USERNAME
+      - MONGO_INITDB_ROOT_PASSWORD=$FDM_MONSTER_MONGO_INITDB_ROOT_PASSWORD
+    labels:
+      # Configure homepage automatic discovery
+      - "homepage.name=FDM Monster MongoDB"
+      - "homepage.group=Background Services"
+      - "homepage.icon=/images/database.png"
+      - "homepage.description=FDMM Database Service"
+      - "homepage.href=https://${DOMAINNAME}/"
+
+  moonraker:
+    image: dimalo/klipper-moonraker
+    container_name: moonraker
+    hostname: moonraker
+    restart: unless-stopped
+    cap_add:
+      - SYS_NICE
+    # if klipper cannot connect to the printer check permissions on rpi then add the group here
+    # group_add:
+    #   - "996"
+    #   - "998"
+    # ports:
+    #   - 7125:7125
+    networks:
+      - print_network
+    volumes:
+    #   # You will need to create a printer.cfg file at ${CONFIGDIR}/moonraker printer.cfg
+      - ${CONFIGDIR}/moonraker:/home/klippy/.config
+    #   - ${APPDATADIR}/moonraker:/home/klippy/.moonraker_database
+    #   - ${APPDATADIR}/gcode:/home/klippy/gcode_files
+    # devices: # Set your moonraker USB device here
+    #   - /dev/ttyUSB0:/dev/ttyUSB0
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.moonraker.rule=Host(`moonraker.${DOMAINNAME}`)"
+      - "traefik.http.services.moonraker.loadbalancer.server.port=7125"
+      # Configure homepage automatic discovery
+      - "homepage.name=Moonraker UI"
+      - "homepage.group=Background Services"
+      - "homepage.icon=/images/boat.png"
+      - "homepage.description=Klipper Moonraker Service"
+      - "homepage.href=https://moonraker.${DOMAINNAME}/"
+
+  mainsail:
+    image: dimalo/mainsail
+    container_name: mainsail
+    hostname: mainsail
+    restart: unless-stopped
+    networks:
+      - print_network
+    # ports:
+    #   - 8011:80
+    depends_on:
+      - moonraker
+    links:
+      - moonraker:klipper
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mainsail.rule=Host(`mainsail.${DOMAINNAME}`)"
+      - "traefik.http.services.mainsail.loadbalancer.server.port=80"
+      # Configure homepage automatic discovery
+      - "homepage.name=Mainsail"
+      - "homepage.group=Print Services"
+      - "homepage.icon=/images/mainsail.png"
+      - "homepage.description=Mainsail Klipper Web UI"
+      - "homepage.href=https://mainsail.${DOMAINNAME}/"
+
+  fluidd: # Alternative to mainsail
+    image: dimalo/fluidd
+    container_name: fluidd
+    hostname: fluidd
+    restart: unless-stopped
+    networks:
+      - print_network
+    # ports:
+    #   - 8010:80
+    depends_on:
+      - moonraker
+    links:
+      - moonraker:klipper
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.fluidd.rule=Host(`fluidd.${DOMAINNAME}`)"
+      - "traefik.http.services.fluidd.loadbalancer.server.port=80"
+      # Configure homepage automatic discovery
+      - "homepage.name=Fluidd"
+      - "homepage.group=Print Services"
+      - "homepage.icon=/images/fluidd.png"
+      - "homepage.description=Fluidd Klipper Web UI"
+      - "homepage.href=https://fluidd.${DOMAINNAME}/"
+
+  octoprint:
+    image: octoprint/octoprint
+    container_name: octoprint
+    hostname: octoprint
+    restart: unless-stopped
+    # ports:
+    #   - 80:80
+    networks:
+      - print_network
+    volumes:
+     - ${CONFIGDIR}/octoprint:/octoprint
+    # use `python -m serial.tools.miniterm` to see what the name is of the printer, this requires pyserial
+    # devices:
+    #  - /dev/ttyACM0:/dev/ttyACM0
+    #  - /dev/video0:/dev/video0
+    # uncomment the lines below to ensure camera streaming is enabled when
+    # you add a video device
+    #environment:
+    #  - ENABLE_MJPG_STREAMER=true
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.octoprint.rule=Host(`octoprint.${DOMAINNAME}`)"
+      - "traefik.http.services.octoprint.loadbalancer.server.port=80"
+      # Configure homepage automatic discovery
+      - "homepage.name=Octoprint"
+      - "homepage.group=Print Services"
+      - "homepage.icon=/images/octoprint.png"
+      - "homepage.description=3D Printer Server"
+      - "homepage.href=https://octoprint.${DOMAINNAME}/"
+
+
+
+
+
+  #####
+  ##### USER, NETWORK, AND AUTHENTICATION SERVICES
+  #####
+  # Authentication service
+  authelia:
+    image: authelia/authelia
+    hostname: authelia
+    container_name: authelia
+    restart: unless-stopped
+    depends_on:
+      - traefik
+      - openldap
+    ports:
+      - ${AUTHELIA_PORT}:${AUTHELIA_PORT}
+    networks:
+      - ldap_network
+    volumes:
+      - ${CONFIGDIR}/authelia:/config
+    environment:
+      - TZ=$TZ
+      - X_AUTHELIA_CONFIG_FILTERS=template
+      - AUTHELIA_SERVER_BUFFERS_READ=16384
+      - AUTHELIA_SERVER_BUFFERS_WRITE=16384
+      - AUTHELIA_LOG_LEVEL=info
+      - AUTHELIA_LOG_FORMAT=text
+      - AUTHELIA_LOG_FILE_PATH=/config/authelia.log
+      - AUTHELIA_LOG_KEEP_STDOUT=false
+      - AUTHELIA_REGULATION_MAX_RETRIES=10
+      - AUTHELIA_REGULATION_FIND_TIME=2 minutes
+      - AUTHELIA_REGULATION_BAN_TIME=3 minutes
+      - AUTHELIA_SERVER_ADDRESS=:${AUTHELIA_PORT}
+      - AUTHELIA_THEME=dark
+      - AUTHELIA_TOTP_ISSUER=authelia.com
+      - AUTHELIA_AUTHENTICATION_BACKEND_LDAP_ATTRIBUTES_GROUP_NAME=cn
+      - AUTHELIA_AUTHENTICATION_BACKEND_LDAP_IMPLEMENTATION=custom
+      - AUTHELIA_AUTHENTICATION_BACKEND_LDAP_ADDRESS=ldaps://openldap
+      - AUTHELIA_AUTHENTICATION_BACKEND_LDAP_START_TLS=false
+      - AUTHELIA_AUTHENTICATION_BACKEND_LDAP_TLS_SKIP_VERIFY=true
+      - AUTHELIA_AUTHENTICATION_BACKEND_LDAP_TLS_MINIMUM_VERSION=TLS1.2
+      - AUTHELIA_AUTHENTICATION_BACKEND_LDAP_BASE_DN=${LDAP_BASE_DN}
+      - AUTHELIA_AUTHENTICATION_BACKEND_LDAP_ADDITIONAL_USERS_DN=ou=people
+      - AUTHELIA_AUTHENTICATION_BACKEND_LDAP_USERS_FILTER=(&({username_attribute}={input})(objectClass=person))
+      - AUTHELIA_AUTHENTICATION_BACKEND_LDAP_ADDITIONAL_GROUPS_DN=ou=groups
+      - AUTHELIA_AUTHENTICATION_BACKEND_LDAP_GROUPS_FILTER=(&(uniquemember={dn})(objectclass=groupOfUniqueNames))
+      - AUTHELIA_AUTHENTICATION_BACKEND_LDAP_USER=cn=admin,${LDAP_BASE_DN}
+      - DOMAINNAME=${DOMAINNAME}
+      - LDAP_ADMIN_PASSWORD=${LDAP_ADMIN_PASSWORD}
+      - CUST_AUTHELIA_PREFIX=${AUTHELIA_PREFIX}
+      - CUST_AUTHELIA_JWT_SECRET=${AUTHELIA_JWT_SECRET}
+      - CUST_AUTHELIA_STORAGE_ENCRYPTION_KEY=${AUTHELIA_STORAGE_ENCRYPTION_KEY}
+      - CUST_AUTHELIA_SESSION_SECRET=${AUTHELIA_SESSION_SECRET}
+    labels:
+      # Add traefik routing
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.authelia.rule=Host(`${AUTHELIA_PREFIX}.${DOMAINNAME}`) || Host(`auth.${DOMAINNAME}`)'
+      - 'traefik.http.routers.authelia.entrypoints=https' 
+      - 'traefik.http.routers.authelia.tls=true'
+      - 'traefik.http.routers.authelia.tls.options=default'
+      # Add forwardauth and proxy header to authelia middleware
+      - 'traefik.http.middlewares.authelia.forwardauth.address=http://authelia:${AUTHELIA_PORT}/api/authz/forward-auth'
+      - 'traefik.http.middlewares.authelia.forwardauth.trustForwardHeader=true'
+      - 'traefik.http.middlewares.authelia.forwardauth.authResponseHeaders=Remote-User, Remote-Groups, Remote-Name, Remote-Email'
+      # Add error handling middleware  
+      - 'traefik.http.middlewares.errorhandler.errors.status=404'
+      - 'traefik.http.middlewares.errorhandler.errors.service=errorhandler-backend'
+      - 'traefik.http.middlewares.errorhandler.errors.query=/'
+      # Configure homepage automatic discovery
+      - "homepage.name=Authelia"
+      - "homepage.group=Services"
+      - "homepage.icon=/images/lock.png"
+      - "homepage.description=Authentication service"
+      - "homepage.href=https://authelia.${DOMAINNAME}/"
+  
+  # Proxy and routing service with theming middleware plugin
+  traefik:
+    image: traefik:latest
+    hostname: traefik
+    container_name: traefik
+    restart: unless-stopped
+    ports:
+      - "${TRAEFIK_PORT_HTTP}:80"
+      - "${TRAEFIK_PORT_HTTPS}:443"
+    networks:
+      traefik_network:
+        aliases:
+          - 'traefik'
+          - 'traefik.${DOMAINNAME}'
+          - '${AUTHELIA_PREFIX}.${DOMAINNAME}'
+      ldap_network: {}
+      manyfold_bridge: {}
+      code_server_bridge: {}
+      dozzle_bridge: {}
+      filebrowser_bridge: {}
+      # fdmmhydra_bridge: {}
+      fdmm_bridge: {}
+      print_network: {}
+      homepage_bridge: {}
+      glances_bridge: {}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ${CERTS_DIR}:/certs:ro
+      - ${CONFIGDIR}/traefik/dynamic.yml:/dynamic.yml
+      - ${LOGSDIR}/traefik:/logs/
+    environment:
+      - TZ=${TZ}
+      - DOMAINNAME=${DOMAINNAME}
+    labels:
+      - "traefik.enable=true"
+      # TLS options
+      - "traefik.tls.options.modern.minVersion=VersionTLS13"
+      - "traefik.tls.options.intermediate.minVersion=VersionTLS12"
+      - "traefik.tls.options.intermediate.cipherSuites=TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305"
+      # Add auth middleware
+      - "traefik.http.routers.api.middlewares=authelia@docker"
+      # Associate traefik with hostname
+      - "traefik.http.routers.traefik.tls.domains[1].main=${DOMAINNAME}"
+      - "traefik.http.routers.traefik.tls.domains[1].sans=*.${DOMAINNAME}"
+      # Add traefik dashboard routing
+      - "traefik.http.routers.api.rule=Host(`traefik.${DOMAINNAME}`)"
+      - "traefik.http.routers.api.service=api@internal"
+      - "traefik.http.routers.api.tls=true"
+      - "traefik.http.routers.api.tls.options=default"
+      # Middleware - Portainer Theme
+      - "traefik.http.middlewares.portainertheme.plugin.themepark.app=portainer"
+      - "traefik.http.middlewares.portainertheme.plugin.themepark.theme=nord"
+      # Middleware - Filebrowser Theme
+      - "traefik.http.middlewares.filebrowsertheme.plugin.themepark.app=filebrowser"
+      - "traefik.http.middlewares.filebrowsertheme.plugin.themepark.theme=nord"
+      # Middleware - Dozzle Theme
+      - "traefik.http.middlewares.dozzletheme.plugin.themepark.app=dozzle"
+      - "traefik.http.middlewares.dozzletheme.plugin.themepark.theme=nord"
+      # Middleware - Dozzle CSP Headers
+      - "traefik.http.middlewares.dozzle-csp.headers.customResponseHeaders.X-WebKit-CSP="
+      - "traefik.http.middlewares.dozzle-csp.headers.customResponseHeaders.Content-Security-Policy="
+      # Configure homepage automatic discovery
+      - "homepage.name=Traefik Dashboard"
+      - "homepage.group=Admin"
+      - "homepage.icon=/images/traffic.png"
+      - "homepage.description=Traefik proxy dashboard"
+      - "homepage.href=https://traefik.${DOMAINNAME}/"
+    command:
+      - "--global.sendAnonymousUsage=false"
+      - "--global.checkNewVersion=false"
+      - "--log.level=DEBUG"
+      - "--log.filepath=logs/traefik.log"
+      # - "--api.insecure=true"
+      - "--api.dashboard=true"
+      # - "--entrypoints.http.address=:80"
+      # - "--entrypoints.http.http.redirections.entrypoint.to=https"
+      # - "--entrypoints.http.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.https.address=:443"
+      - "--entrypoints.https.http.middlewares=authelia@docker"
+      - "--entrypoints.https.http.tls=true"
+      - "--providers.docker.endpoint=unix:///var/run/docker.sock"
+      - "--providers.docker.exposedByDefault=false"
+      - "--providers.file.filename=/dynamic.yml"
+      - "--providers.file.watch=true"
+      - "--experimental.plugins.themepark.modulename=github.com/packruler/traefik-themepark"
+      - "--experimental.plugins.themepark.version=v1.2.2"
+      
+  # Local DNS Service
+  coredns:
+    image: coredns/coredns
+    hostname: coredns
+    container_name: coredns
+    restart: unless-stopped
+    command: -conf /data/Corefile
+    ports:
+      - 53:53/tcp
+      - 53:53/udp
+      # - 9153:9153 #
+    networks: # Doesn't need to be on traefik network
+      - default    
+    environment:
+      - DOMAINNAME=$DOMAINNAME
+      - HOSTIP=$HOSTIP
+    volumes:
+      - ${CONFIGDIR}/coredns/config:/config/
+      - ${CONFIGDIR}/coredns/Corefile:/data/Corefile
+    labels:
+    # Configure homepage automatic discovery
+      - "homepage.name=CoreDNS"
+      - "homepage.group=Background Services"
+      - "homepage.icon=/images/dns.png"
+      - "homepage.description=Local Name Service"
+
+  # # Local Certificate Authority
+  # step-ca: LET ME KNOW IF YOU GET THIS WORKING PROPERLY, I'D PREFER THIS OVER MKCERT
+  #   image: smallstep/step-ca
+  #   hostname: step-ca
+  #   container_name: step-ca
+  #   restart: unless-stopped
+  #   tty: true
+  #   user: root
+  #   entrypoint: ["/bin/bash", "/custom-entrypoint.sh"]
+  #   # entrypoint: ["chmod", "+x", "/entrypoint"]
+  #     # - /entrypoint.sh # Define custom entrypoint to automate cert generation
+  #   networks:
+  #     - ca_network
+  #   ports:
+  #     - "9001:9000"       # CA server port
+  #   #   - "8443:443"         # HTTPS port for issuing certificates
+  #   volumes:
+  #     - ${APPDATADIR}/step-ca:/home/step # Mount volume to persist CA data
+  #     - ${CONFIGDIR}/step-ca/entrypoint.sh:/custom-entrypoint.sh # Mount volume to persist CA data
+  #     - ./certs:/home/step/certs
+  #   environment:
+  #     - STEPPATH=/home/step
+  #     - DOMAINNAME=${DOMAINNAME}
+  #     - CERTPASSWORD=${ADMINPASSWORD}
+  #     - PROVISIONERPASSWORD=${PROVISIONERPASSWORD}
+  #   labels:
+  #   # Configure homepage automatic discovery
+  #     - "homepage.name=Step-CA"
+  #     - "homepage.group=Background Services"
+  #     - "homepage.icon=/images/dns.png"
+  #     - "homepage.description=Local Certificate Authority"
+
+  # Self-signed cert generation, less preferable alternative to the above CA
+  mkcert:
+    image: vishnunair/docker-mkcert
+    hostname: mkcert
+    container_name: mkcert
+    restart: unless-stopped
+    volumes:
+        - ./certs/:/root/.local/share/mkcert
+    environment: 
+      - domain=${DOMAINNAME},*.${DOMAINNAME}
+    labels:
+    # Configure homepage automatic discovery
+      - "homepage.name=mkcert"
+      - "homepage.group=Background Services"
+      - "homepage.icon=/images/cert.png"
+      - "homepage.description=Localhost cert management"
+    
+  # User and group service
+  openldap:
+    image: osixia/openldap:latest
+    hostname: openldap
+    container_name: openldap
+    restart: unless-stopped
+    command: --copy-service
+    networks:
+      - ldap_network
+    volumes: 
+      - ${CONFIGDIR}/openldap/ldap/db:/var/lib/ldap:rw
+      - ${CONFIGDIR}/openldap/ldap/conf:/etc/ldap/slapd.d:rw
+    environment:
+      TZ: $TZ
+      LDAP_ORGANISATION: ${LDAP_ORGANISATION}
+      LDAP_DOMAIN: ${DOMAINNAME}
+      LDAP_BASE_DN: ${LDAP_BASE_DN}
+      LDAP_ADMIN_USERNAME: admin
+      LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD}
+      LDAP_CONFIG_PASSWORD: ${LDAP_CONFIG_PASSWORD}
+      LDAP_TLS_VERIFY_CLIENT: ${LDAP_TLS_VERIFY_CLIENT}
+      LDAP_READONLY_USER: ${LDAP_READONLY_USER}
+      LDAP_READONLY_USER_USERNAME: ${LDAP_READONLY_USER_USERNAME}
+      LDAP_READONLY_USER_PASSWORD: ${LDAP_READONLY_USER_PASSWORD}
+      LDAP_RFC2307BIS_SCHEMA: ${LDAP_RFC2307BIS_SCHEMA}
+      LDAP_BACKEND: ${LDAP_BACKEND}
+      LDAP_REPLICATION: ${LDAP_REPLICATION}
+      KEEP_EXISTING_CONFIG: "false"
+      LDAP_REMOVE_CONFIG_AFTER_SETUP: "true"
+      LDAP_PORT_NUMBER: ${OPENLDAP_PORT}
+      LDAP_LDAPS_PORT_NUMBER: ${OPENLDAP_LDAPS_PORT}
+    labels:
+    # Configure homepage automatic discovery
+      - "homepage.name=OpenLDAP"
+      - "homepage.group=Background Services"
+      - "homepage.icon=/images/group.png"
+      - "homepage.description=Users and Groups Service"
+
+  # User and group management service
+  ldap-user-manager:
+    image: wheelybird/ldap-user-manager:v1.9
+    hostname: ldap-user-manager
+    container_name: ldap-user-manager
+    restart: unless-stopped
+    ports:
+      - ${LDAP_USER_MANAGER_PORT}:80
+    networks:
+      - ldap_network
+    depends_on:
+      - openldap
+    environment:
+      TZ: $TZ
+      SERVER_HOSTNAME: ldap-user-manager.${DOMAINNAME}
+      ORGANISATION_NAME: ${LDAP_ORGANISATION}
+      LDAP_URI: "ldap://openldap:${OPENLDAP_PORT}"
+      LDAP_BASE_DN: "${LDAP_BASE_DN}"
+      LDAP_ADMINS_GROUP: "admins"
+      LDAP_ADMIN_BIND_DN: "cn=admin,${LDAP_BASE_DN}"
+      LDAP_ADMIN_BIND_PWD: ${LDAP_ADMIN_PASSWORD} 
+      LDAP_DEBUG: "true"
+      LDAP_IGNORE_CERT_ERRORS: "true"
+      LDAP_REQUIRE_STARTTLS: "false"
+      LDAP_DOMAIN: "${DOMAINNAME}"
+      EMAIL_DOMAIN: "@${DOMAINNAME}"
+      NO_HTTPS: "true"
+      ACCEPT_WEAK_PASSWORDS : "true"
+      EMAIL_FROM_ADDRESS: "admin@${DOMAINNAME}"
+      REMOTE_HTTP_HEADERS_LOGIN: "${LUM_REMOTE_HTTP_HEADERS_LOGIN}"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ldap-user-manager.rule=Host(`ldap-user-manager.${DOMAINNAME}`) || Host(`admin.${DOMAINNAME}`)"
+      - "traefik.http.services.ldap-user-manager.loadbalancer.server.port=80"
+      - "traefik.http.services.ldap-user-manager.loadbalancer.server.scheme=http"
+      # Configure homepage automatic discovery
+      - "homepage.name=Ldap User Manager"
+      - "homepage.group=Services"
+      - "homepage.icon=/images/account.png"
+      - "homepage.description=User and group management"
+      - "homepage.href=https://ldap-user-manager.${DOMAINNAME}/"
+
+
+
+
+
+  #####
+  ##### ADMIN SERVICES
+  #####
+  # Setup and environment management, locally built, disabled for now
+  # fdmmhydra:
+  #   container_name: fdmmhydra
+  #   hostname: fdmmhydra
+  #   stop_signal: SIGINT
+  #   build:
+  #     context: fdmmhydra
+  #     target: builder
+  #   networks:
+  #     - fdmmhydra_bridge
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #     - $CONFIGDIR/fdmmhydra:/fdmmhydra/home
+  #     - ./:/fdmmhydra/docker
+  #   environment:
+  #     - PYTHONUNBUFFERED=1
+  #     - TZ=$TZ
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.fdmmhydra.rule=Host(`fdmmhydra.${DOMAINNAME}`)"
+  #     - "traefik.http.services.fdmmhydra.loadbalancer.server.port=80"
+  #     # Configure homepage automatic discovery
+  #     - "homepage.name=Environment Settings"
+  #     - "homepage.group=Admin"
+  #     - "homepage.icon=/images/cog.png"
+  #     - "homepage.description=FDMM Kraken configuration tool"
+  #     - "homepage.href=https://fdmmhydra.${DOMAINNAME}/"
+
+  # Server maintainance and file editing service
+  code-server:
+    image: lscr.io/linuxserver/code-server:latest
+    hostname: code-server
+    container_name: code-server
+    restart: unless-stopped
+    networks:
+      - code_server_bridge
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=$TZ
+      - PROXY_DOMAIN=code-server.$DOMAINNAME
+      - DEFAULT_WORKSPACE=/workspace
+      - PASSWORD=${CODESERVERPASSWORD}
+    volumes:
+      - ${APPDATADIR}/code-server:/config
+      - ./:/workspace # To edit compose stack
+    # ports:
+    #   - 8443:8443
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.code-server.entrypoints=https"
+      - "traefik.http.routers.code-server.rule=Host(`code-server.${DOMAINNAME}`)"
+      - "traefik.http.services.code-server.loadbalancer.server.port=8443"
+      # Configure homepage automatic discovery
+      - "homepage.name=VS Code Server"
+      - "homepage.group=Admin"
+      - "homepage.icon=/images/vscode.png"
+      - "homepage.description=Server maintainance and file editing"
+      - "homepage.href=https://code-server.${DOMAINNAME}/"
+    
+  # Container management service
+  portainer:
+    image: portainer/portainer-ce:alpine
+    hostname: portainer
+    container_name: portainer
+    restart: unless-stopped
+    networks:
+      - ldap_network # To enable ldap on portainer
+    # ports:
+    #   - 9000:9000
+    command: -H unix:///var/run/docker.sock
+    environment:
+      - PUID=1024
+      - PGID=101
+      - TZ=${TZ}
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "${APPDATADIR}/portainer:/data"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portainer.rule=Host(`portainer.${DOMAINNAME}`)"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+      # Add theme middleware
+      - "traefik.http.routers.portainer.middlewares=portainertheme"
+      # Configure homepage automatic discovery
+      - "homepage.name=Portainer"
+      - "homepage.group=Admin"
+      - "homepage.icon=/images/portainer.png"
+      - "homepage.description=Container management service"
+      - "homepage.href=https://portainer.${DOMAINNAME}/"
+
+  # Container debug and monitoring service
+  dozzle:
+    image: amir20/dozzle:latest
+    hostname: dozzle
+    container_name: dozzle
+    restart: unless-stopped
+    networks:
+      - dozzle_bridge
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    environment:
+      -TZ: ${TZ}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dozzle.rule=Host(`dozzle.${DOMAINNAME}`)"
+      - "traefik.http.services.dozzle.loadbalancer.server.port=8080"
+      # Add theme middleware
+      - "traefik.http.routers.dozzle.middlewares=dozzle-csp,dozzletheme"
+      # Configure homepage automatic discovery
+      - "homepage.name=Dozzle"
+      - "homepage.group=Admin"
+      - "homepage.icon=/images/console.png"
+      - "homepage.description=Container debug and monitoring service"
+      - "homepage.href=https://dozzle.${DOMAINNAME}/"
+
+  # File management service
+  filebrowser:
+    image: filebrowser/filebrowser
+    hostname: filebrowser
+    container_name: filebrowser
+    restart: unless-stopped
+    networks:
+      - filebrowser_bridge
+    volumes:
+      - "./:/srv"
+    environment:
+      -TZ: ${TZ}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.filebrowser.rule=Host(`filebrowser.${DOMAINNAME}`)"
+      - "traefik.http.services.filebrowser.loadbalancer.server.port=80"
+      # Add theme middleware
+      - "traefik.http.routers.filebrowser.middlewares=filebrowsertheme"
+      # Configure homepage automatic discovery
+      - "homepage.name=Filebrowser"
+      - "homepage.group=Admin"
+      - "homepage.icon=/images/cabinet.png"
+      - "homepage.description=File management service"
+      - "homepage.href=https://filebrowser.${DOMAINNAME}/"
+
+  # Host monitoring
+  glances:
+    image: nicolargo/glances:latest-full
+    hostname: glances
+    container_name: glances
+    restart: unless-stopped
+    pid: "host"
+    privileged: true
+    networks:
+      - glances_bridge
+      - glances_network
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "/run/user/1000/podman/podman.sock:/run/user/1000/podman/podman.sock:ro"
+      - "${APPDATADIR}/glances:/glances/conf"
+    environment:
+      - TZ=${TZ}
+      - "GLANCES_OPT=-C /glances/conf/glances.conf -w"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.glances.rule=Host(`glances.$DOMAINNAME`)"
+      - "traefik.http.services.glances.loadbalancer.server.port=61208"
+      # Configure homepage automatic discovery
+      - "homepage.name=Glances"
+      - "homepage.group=Admin"
+      - "homepage.icon=/images/eye.png"
+      - "homepage.description=Host Monitoring Service"
+      - "homepage.href=https://glances.${DOMAINNAME}/"
+    # Uncomment for GPU compatibility (Nvidia) inside the container
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+
+
+
+
+  #####
+  ##### General Services
+  #####
+  # Environment Dashboard
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    hostname: homepage
+    container_name: homepage
+    restart: unless-stopped
+    user: root
+    networks:
+      - ldap_network # For plugin integration / trafeik connection
+      - homepage_bridge # To connect to traefik
+      - glances_network # For plugin integration
+      - print_network # For plugin integration
+      
+    volumes:
+      - ${CONFIGDIR}/homepage:/app/config
+      - ${LOGSDIR}/homepage:/app/config/logs
+      - ${CONFIGDIR}/homepage/images:/app/public/images
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - TZ=$TZ
+    labels:
+      # Add traefik route
+      - "traefik.enable=true"
+      - "traefik.docker.network=homepage_bridge"
+      - "traefik.http.routers.homepage.rule=Host(`${DOMAINNAME}`)"
+      - "traefik.http.services.homepage.loadbalancer.server.port=3000"
+      # Configure homepage automatic discovery
+      - "homepage.name=Homepage"
+      - "homepage.group=Services"
+      - "homepage.icon=/images/home.png"
+      - "homepage.description=Environment Dashboard"
+      - "homepage.href=https://${DOMAINNAME}/"
+
+  # 3D Model manager
+  manyfold:
+    image: ghcr.io/manyfold3d/manyfold:latest
+    container_name: manyfold
+    hostname: manyfold
+    restart: unless-stopped
+    ports:
+      - 3214:3214
+    # # Optional, but recommended for better security
+    # security_opt:
+    #   - no-new-privileges:true
+    depends_on:
+      - manyfold-postgres
+      - manyfold-redis
+    links:
+      - manyfold-redis:manyfold-redis
+      - manyfold-postgres:manyfold-postgres
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETUID
+      - SETGID
+    networks:
+      - manyfold_bridge
+      - manyfold_network
+    volumes:
+      - ${APPDATADIR}/3dmodels:/libraries
+    environment:
+      DATABASE_ADAPTER: postgresql # mysql2 or sqlite3 are also supported
+      DATABASE_HOST: manyfold-postgres
+      DATABASE_NAME: manyfold # or the path to the database file if using sqlite3
+      DATABASE_USER: manyfold
+      DATABASE_PASSWORD: ${MANYFOLDDBPASSWORD}
+      SECRET_KEY_BASE: ${MANYFOLDSECRETKEY}
+      REDIS_URL: redis://manyfold-redis:6379/1
+      PUID: 1000
+      PGID: 1000
+      # For details of other optional environment variables, including features such
+      # as multiuser mode, visit https://manyfold.app/sysadmin/configuration.html
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.manyfold.rule=Host(`manyfold.${DOMAINNAME}`)"
+      - "traefik.http.services.manyfold.loadbalancer.server.port=3214"
+      # Configure homepage automatic discovery
+      - "homepage.name=Manyfold3D"
+      - "homepage.group=Print Services"
+      - "homepage.icon=/images/cube.png"
+      - "homepage.description=3D Model Manager"
+      - "homepage.href=https://manyfold.${DOMAINNAME}/"
+        
+  manyfold-postgres:
+    image: postgres:15
+    container_name: manyfold-postgres
+    hostname: manyfold-postgres
+    restart: unless-stopped
+    networks:
+      - manyfold_network
+    volumes:
+      - ${APPDATADIR}/manyfold/postgres:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: manyfold
+      POSTGRES_PASSWORD: ${MANYFOLDDBPASSWORD}
+    labels:
+      - "homepage.name=Manyfold3D Postgres"
+      - "homepage.group=Background Services"
+      - "homepage.icon=/images/database.png"
+      - "homepage.description=Manyfold3D Postgres Service"
+    
+  manyfold-redis:
+    image: redis:7
+    container_name: manyfold-redis
+    hostname: manyfold-redis
+    restart: unless-stopped
+    networks:
+      - manyfold_network
+    labels:
+      - "homepage.name=Manyfold3D Redis"
+      - "homepage.group=Background Services"
+      - "homepage.icon=/images/cache.png"
+      - "homepage.description=Manyfold3D Redis Service"

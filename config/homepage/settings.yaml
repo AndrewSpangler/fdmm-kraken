@@ -1,0 +1,23 @@
+title: FDMM Kraken Home
+theme: dark
+favicon: /images/favicon.ico
+layout:
+  Host Status:
+    style: row
+    columns: 3
+
+  Print Services:
+    style: row
+    columns: 3
+
+  Services:
+    style: row
+    columns: 3
+  
+  Admin:
+    style: row
+    columns: 3
+  
+  Background Services:
+    style: row
+    columns: 3

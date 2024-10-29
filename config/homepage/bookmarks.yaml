@@ -1,0 +1,42 @@
+---
+# For configuration options and examples, please see:
+# https://gethomepage.dev/configs/bookmarks
+
+- Documentation:
+    - FDM-Monster Documentation:
+        - abbr: FD
+          href: https://docs.fdm-monster.net/
+    
+    - Octoprint Documentation:
+        - abbr: OD
+          href: https://docs.octoprint.org/en/master/
+
+    - Klipper Documentation:
+        - abbr: KD
+          href: https://www.klipper3d.org/Overview.html
+    
+    - Moonraker Documentation:
+        - abbr: MD
+          href: https://moonraker.readthedocs.io/en/latest/
+    
+    - Mainsail Documentaion:
+        - abbr: MD
+          href: https://docs.mainsail.xyz/
+
+
+- Support:
+    - FDM-Monster Discord:
+        - abbr: FD
+          href: https://discord.gg/mwA8uP8CMc/
+
+    - Octoprint Discord:
+        - abbr: OD
+          href: https://discord.octoprint.org/
+
+    - Klipper Discord:
+        - abbr: KD
+          href: https://discord.klipper3d.org/
+
+    - Mainsail Discord:
+        - abbr: MD
+          href: https://discord.com/invite/mainsail

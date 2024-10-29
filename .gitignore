@@ -1,0 +1,13 @@
+
+.env
+appdata/*
+certs/*
+config/authelia/keys/*
+config/authelia/authelia.log
+config/authelia/db.sqlite3
+config/authelia/notification.txt
+config/homepage/logs
+config/moonraker
+config/octoprint
+config/openldap
+logs/

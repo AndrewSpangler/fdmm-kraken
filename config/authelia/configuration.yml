@@ -1,0 +1,132 @@
+authentication_backend:
+  ldap:
+    password: '{{ env "LDAP_ADMIN_PASSWORD" }}'
+server:
+  endpoints:
+    authz:
+      forward-auth:
+        implementation: ForwardAuth
+identity_validation:
+  reset_password:
+    jwt_secret: '{{ env "CUST_AUTHELIA_JWT_SECRET" }}' 
+
+session:
+  secret: '{{ env "CUST_AUTHELIA_JWT_SECRET" }}' 
+  cookies:
+  - name: authelia_session
+    domain: '{{ env "DOMAINNAME" }}'
+    authelia_url: 'https://{{ env "CUST_AUTHELIA_PREFIX" }}.{{ env "DOMAINNAME" }}/'
+    expiration: 24 hour
+    inactivity: 4 hour
+    default_redirection_url: 'https://{{ env "DOMAINNAME" }}/'
+storage:
+  encryption_key: '{{ env "CUST_AUTHELIA_STORAGE_ENCRYPTION_KEY" }}' 
+  local:
+    path: /config/db.sqlite3
+notifier:
+  filesystem:
+    filename: /config/notification.txt
+
+access_control:
+  default_policy: deny
+
+  # Authelia - must bypass for users to log in
+  rules:
+  - domain: authelia.{{ env "DOMAINNAME" }}
+    policy: bypass
+
+  # code-server - admins
+  - domain: code-server.{{ env "DOMAINNAME" }}
+    subject:
+    - group:admins
+    policy: one_factor
+
+  # dozzle - admins
+  - domain: dozzle.{{ env "DOMAINNAME" }}
+    subject:
+    - group:admins
+    policy: one_factor
+
+  # fdm-monster - users
+  - domain: fdm-monster.{{ env "DOMAINNAME" }}
+    subject:
+    - group:everybody
+    policy: one_factor
+  
+  # fdm-monster - users
+  - domain: fdm-monster.{{ env "DOMAINNAME" }}
+    subject:
+    - group:everybody
+    policy: one_factor
+
+  # filebrowser - admins
+  - domain: filebrowser.{{ env "DOMAINNAME" }}
+    subject:
+    - group:admins
+    policy: one_factor
+
+  # fluidd - everyone
+  - domain: fluidd.{{ env "DOMAINNAME" }}
+    subject:
+    - group:everybody
+    policy: one_factor
+
+  # glacnes - admins
+  - domain: glances.{{ env "DOMAINNAME" }}
+    subject:
+    - group:admins
+    policy: one_factor
+
+  # homepage - everyone
+  - domain: '{{ env "DOMAINNAME" }}'
+    subject:
+    - group:everybody
+    policy: one_factor
+
+  # mainsail - everyone
+  - domain: mainsail.{{ env "DOMAINNAME" }}
+    subject:
+    - group:everybody
+    policy: one_factor
+
+  # manyfold - everyone
+  - domain: manyfold.{{ env "DOMAINNAME" }}
+    subject:
+    - group:everybody
+    policy: one_factor
+
+  # moonraker - everyone
+  - domain: moonraker.{{ env "DOMAINNAME" }}
+    subject:
+    - group:everybody
+    policy: one_factor
+
+  # octoprint - everyone
+  - domain: octoprint.{{ env "DOMAINNAME" }}
+    subject:
+    - group:everybody
+    policy: one_factor
+
+  # portainer - admins
+  - domain: portainer.{{ env "DOMAINNAME" }}
+    subject:
+    - group:admins
+    policy: one_factor
+
+  # ldap-user-manager - everybody (for changing passwords)
+  - domain: ldap-user-manager.{{ env "DOMAINNAME" }}
+    subject:
+    - group:everybody
+    policy: one_factor
+
+  # traefik dashboard - admins
+  - domain: traefik.{{ env "DOMAINNAME" }}
+    subject:
+    - group:admins
+    policy: one_factor
+  
+  # fdmmhydra - admins
+  # - domain: fdmmhydra.{{ env "DOMAINNAME" }}
+  #   subject:
+  #   - group:admins
+  #   policy: one_factor

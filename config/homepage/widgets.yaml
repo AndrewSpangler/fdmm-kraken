@@ -1,0 +1,17 @@
+---
+# For configuration options and examples, please see:
+# https://gethomepage.dev/configs/service-widgets
+
+# - resources:
+#     cpu: true
+#     memory: true
+#     disk: /
+#     uptime: true
+
+- logo:
+    icon: /images/kracken.png
+
+- greeting:
+    text_size: 4xl
+    text: Welcome to FDMM Kraken
+

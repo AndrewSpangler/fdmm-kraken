@@ -1,0 +1,48 @@
+tls:
+  options:
+    modern:
+      minVersion: VersionTLS13
+    intermediate:
+      minVersion: VersionTLS12
+      cipherSuites:
+      - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+      - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+      - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+      - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+      - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+      - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
+  certificates:
+    - certFile: '/certs/_wildcard.{{ env "DOMAINNAME" }}.pem'
+      keyFile: '/certs/_wildcard.{{ env "DOMAINNAME" }}-key.pem'
+      stores:
+        - default
+  stores:
+    default:
+      defaultCertificate:
+        certFile: '/certs/_wildcard.{{ env "DOMAINNAME" }}.pem'
+        keyFile: '/certs/_wildcard.{{ env "DOMAINNAME" }}-key.pem'
+
+http:
+  middlewares:
+    securityHeaders:
+      headers:
+        customResponseHeaders:
+          X-Robots-Tag: none,noarchive,nosnippet,notranslate,noimageindex
+          X-Forwarded-Proto: https
+          server: ''
+        customRequestHeaders:
+          X-Forwarded-Proto: https
+          X-Forwarded-Ssl: true
+          X-Forwarded-Port: 443
+          X-Forwarded-Host: '{{ env "DOMAINNAME" }}'
+        sslProxyHeaders:
+          X-Forwarded-Proto: https
+        referrerPolicy: same-origin
+        hostsProxyHeaders:
+        - X-Forwarded-Host
+        contentTypeNosniff: true
+        browserXssFilter: true
+        forceSTSHeader: true
+        stsIncludeSubdomains: true
+        stsSeconds: 63072000
+        stsPreload: true
