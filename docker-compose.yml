@@ -785,8 +785,8 @@ services:
     container_name: manyfold
     hostname: manyfold
     restart: unless-stopped
-    ports:
-      - 3214:3214
+    # ports:
+    #   - 3214:3214
     # # Optional, but recommended for better security
     # security_opt:
     #   - no-new-privileges:true
